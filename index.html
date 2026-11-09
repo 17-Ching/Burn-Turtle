@@ -1,0 +1,1011 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>燒烏龜・祈晴</title>
+<meta name="description" content="線上燒烏龜：畫太陽與 66 隻頭朝太陽的烏龜，心中默念後燒成灰燼，祈求晴天。">
+<style>
+:root{
+  --bg:#f5f2e9;--card:#fffdf6;--ink:#262320;--ink-2:#4a453e;--muted:#7a7468;--line:#262320;
+  --yellow:#FFDB7B;--green:#B9D672;--teal:#77C9C5;--y-soft:#fff3d1;--g-soft:#eef5dc;--t-soft:#e1f2f0;
+  --night:#070504;--glow:#f3e3c8;--n-card:#17120e;--n-line:#4a3e33;
+  --ease:cubic-bezier(.32,.72,0,1);
+  --font:"Microsoft JhengHei","微軟正黑體","PingFang TC","Noto Sans TC",sans-serif;
+}
+*{box-sizing:border-box;margin:0}
+html,body{min-height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--font);-webkit-font-smoothing:antialiased;transition:background 2.6s var(--ease),color 2s var(--ease)}
+body.night{background:var(--night);color:var(--glow)}
+body:not([data-step="1"]){overflow:hidden}
+#stage{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none}
+body[data-step="1"] #stage{pointer-events:none}
+#stage.lighter{cursor:none}
+
+/* progress */
+.steps{position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:10;display:flex;gap:4px;padding:4px;border-radius:12px;
+  background:var(--card);border:1.5px solid var(--line);box-shadow:3px 3px 0 var(--line);transition:background 2s,border-color 2s,box-shadow 2s}
+.steps span{font-size:13px;font-weight:700;letter-spacing:.1em;padding:6px 14px;border-radius:8px;color:var(--muted);white-space:nowrap;transition:background .4s,color .4s}
+.steps span.on{background:var(--yellow);color:var(--ink)}
+.steps span.done{color:var(--ink)}
+.night .steps{background:var(--n-card);border-color:var(--n-line);box-shadow:3px 3px 0 var(--n-line)}
+.night .steps span{color:#7d6f60}
+.night .steps span.on{color:var(--ink)}
+.night .steps span.done{color:var(--glow)}
+
+/* setup screen */
+#setup{position:relative;z-index:6;min-height:100dvh;max-width:1280px;margin:0 auto;display:grid;grid-template-columns:1.05fr 1fr;align-items:center;
+  gap:clamp(40px,6vw,104px);padding:120px clamp(20px,6vw,96px) 96px;transition:opacity .7s var(--ease),transform .9s var(--ease)}
+body:not([data-step="1"]) #setup{opacity:0;transform:translateY(-24px);pointer-events:none;visibility:hidden;
+  transition:opacity .7s var(--ease),transform .9s var(--ease),visibility 0s .9s}
+.reveal{animation:rise .9s var(--ease) both;animation-delay:var(--d,0s)}
+@keyframes rise{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:none}}
+.eyebrow{display:inline-block;padding:6px 12px;border:1.5px solid var(--line);border-radius:8px;background:var(--green);font-size:13px;font-weight:700;letter-spacing:.06em;color:var(--ink)}
+h1{font:700 clamp(64px,9vw,128px)/1 var(--font);white-space:nowrap;letter-spacing:.02em;margin:24px 0 28px;display:flex;align-items:flex-start;gap:.14em}
+.seal{width:.62em;height:.62em;flex:none;margin-top:.02em;animation:spin 60s linear infinite}
+@keyframes spin{to{transform:rotate(1turn)}}
+#heroTurtles{display:block;width:min(100%,420px);height:auto;margin:-8px 0 22px}
+#clearAll{position:fixed;left:0;right:0;margin:auto;width:max-content;bottom:92px;z-index:8;background:var(--yellow);display:none}
+body[data-step="4"] #clearAll{display:inline-flex}
+.lead{font-size:17px;line-height:1.9;max-width:30em;color:var(--ink-2)}
+.rite{list-style:none;padding:0;margin:32px 0 0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 24px;max-width:30em}
+.rite li{display:flex;gap:10px;align-items:center;font-size:15px;color:var(--ink-2)}
+.rite b{display:grid;place-items:center;flex:none;width:30px;height:30px;border:1.5px solid var(--line);border-radius:8px;background:var(--t-soft);font-size:12px;color:var(--ink)}
+.note{margin-top:40px;font-size:13px;color:var(--muted)}
+
+.card{background:var(--card);border:1.5px solid var(--line);border-radius:16px;box-shadow:7px 7px 0 var(--teal),7px 7px 0 1.5px var(--line);
+  padding:clamp(22px,3vw,36px);display:grid;gap:20px}
+.field{display:grid;gap:8px}
+.field>span{font-size:13px;font-weight:700;color:var(--ink-2)}
+input,textarea{font:400 16px/1.5 var(--font);color:var(--ink);background:#fff;border:1.5px solid var(--line);border-radius:10px;padding:11px 14px;width:100%;outline:none;transition:box-shadow .2s}
+input:focus,textarea:focus{box-shadow:0 0 0 3px var(--yellow)}
+textarea{resize:vertical;font-size:17px;line-height:1.6}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.row>.field{min-width:0}
+/* phone date inputs keep a built-in min width and overflow their column unless told otherwise */
+input[type=date]{display:block;min-width:0;min-height:48px;-webkit-appearance:none;appearance:none;text-align:left}
+.loc{position:relative}
+#locList{position:absolute;left:0;right:0;top:calc(100% + 6px);z-index:3;list-style:none;padding:4px;margin:0;background:var(--card);border:1.5px solid var(--line);border-radius:10px;box-shadow:4px 4px 0 var(--line)}
+#locList[hidden]{display:none}
+#locList button{all:unset;box-sizing:border-box;display:flex;flex-direction:column;gap:2px;width:100%;padding:9px 12px;border-radius:7px;cursor:pointer}
+#locList button:hover,#locList button:focus-visible{background:var(--y-soft)}
+#locList b{font-weight:700}
+#locList small{color:var(--muted);font-size:12px}
+#locList .empty{padding:12px 14px;font-size:13px;color:var(--muted)}
+.wx{font-size:13px;padding:14px 16px;border-radius:10px;background:var(--t-soft);border:1.5px solid var(--line)}
+.wx:empty{display:none}
+.wx h4{font-size:15px;font-weight:700;margin-bottom:10px}
+.wx ul{list-style:none;padding:0;display:grid;gap:7px}
+.wx li{display:grid;grid-template-columns:62px 70px 1fr 38px;align-items:center;gap:10px;color:var(--ink-2);font-variant-numeric:tabular-nums}
+.wx li span:last-child{text-align:right}
+.bar{height:9px;border-radius:5px;background:#fff;border:1px solid var(--line);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--teal);transform-origin:left;animation:grow 1s var(--ease) both}
+@keyframes grow{from{transform:scaleX(0)}}
+.wx .muted{color:var(--muted);line-height:1.7}
+
+.cta{all:unset;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;gap:12px;padding:12px 20px;border-radius:10px;border:1.5px solid var(--line);
+  background:var(--green);color:var(--ink);font:700 15px/1 var(--font);letter-spacing:.04em;cursor:pointer;box-shadow:3px 3px 0 var(--line);transition:transform .15s,box-shadow .15s}
+.cta i{font-style:normal}
+.cta:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--line)}
+.cta:active{transform:translate(3px,3px);box-shadow:0 0 0 var(--line)}
+.cta:disabled{opacity:.4;cursor:not-allowed;transform:none;box-shadow:3px 3px 0 var(--line)}
+.cta:focus-visible,.ghost:focus-visible{outline:3px solid var(--yellow);outline-offset:2px}
+.ghost{all:unset;box-sizing:border-box;cursor:pointer;padding:12px 18px;border-radius:10px;border:1.5px solid var(--line);background:var(--card);font:700 14px/1 var(--font);color:var(--ink);transition:background .2s}
+.ghost:hover{background:var(--y-soft)}
+#go{justify-self:start;margin-top:4px}
+
+/* step 2 dock */
+.dock{position:fixed;left:50%;bottom:18px;z-index:8;max-width:calc(100vw - 24px);transform:translate(-50%,160%);opacity:0;pointer-events:none;transition:transform .9s var(--ease),opacity .6s var(--ease)}
+body[data-step="2"] .dock{transform:translate(-50%,0);opacity:1;pointer-events:auto}
+.dock-core{display:flex;align-items:center;gap:10px;padding:10px 10px 10px 20px;border-radius:14px;background:var(--card);border:1.5px solid var(--line);box-shadow:5px 5px 0 var(--line)}
+.dock-text{display:grid;gap:3px;margin-right:8px;white-space:nowrap}
+.dock button{white-space:nowrap}
+.dock-text b{font-size:15px;font-weight:700}
+.dock-text small{font-size:12px;color:var(--muted)}
+
+/* draw-your-own turtle */
+#padWrap{position:fixed;inset:0;z-index:12;display:grid;place-items:center;padding:16px;background:rgba(38,35,32,.35)}
+#padWrap[hidden]{display:none}
+.pad-card{gap:14px;width:min(420px,100%)}
+.pad{position:relative;width:100%;aspect-ratio:1;border:1.5px solid var(--line);border-radius:10px;background:#fff}
+.pad::before{content:"";position:absolute;inset:20% 24%;border:1.5px dashed #d6cfbf;border-radius:50%;pointer-events:none}
+#pad{display:block;width:100%;height:100%;touch-action:none;cursor:crosshair}
+.pad-head{position:absolute;top:8px;left:50%;transform:translateX(-50%);font-size:12px;color:var(--muted);pointer-events:none}
+.pad-actions{display:flex;gap:8px;flex-wrap:wrap}
+.pens{display:flex;gap:10px;flex-wrap:wrap}
+.pen{all:unset;box-sizing:border-box;width:36px;height:36px;border-radius:8px;background:var(--c);border:1.5px solid var(--line);cursor:pointer;transition:transform .15s,box-shadow .15s}
+.pen.on{transform:translate(-2px,-2px);box-shadow:3px 3px 0 var(--line),inset 0 0 0 3px #fff}
+.pen:focus-visible{outline:3px solid var(--yellow);outline-offset:2px}
+#padDone{margin-left:auto}
+
+/* prayer + hint */
+#prayer{position:fixed;inset:0;z-index:9;display:grid;place-items:center;align-content:center;gap:24px;text-align:center;padding:24px;color:var(--glow);
+  background:radial-gradient(ellipse at center,rgba(7,5,4,.74),rgba(7,5,4,.94));opacity:0;pointer-events:none;transition:opacity 1.8s var(--ease)}
+#prayer.on{opacity:1}
+#prayer.on>*{animation:rise 1.6s var(--ease) both}
+#prayer.on>:nth-child(2){animation-delay:.3s}
+#prayer.on>:nth-child(3){animation-delay:.6s}
+#prayer.on>:nth-child(4){animation-delay:1.2s}
+#prayer .eyebrow{background:transparent;border-color:var(--n-line);color:rgba(243,227,200,.6)}
+#prayer h2{font:700 clamp(26px,5vw,44px)/1.55 var(--font);letter-spacing:.1em}
+#prayer p.wishline{font-size:clamp(17px,2.4vw,21px);line-height:1.8;color:rgba(243,227,200,.55);max-width:26em}
+.breath{width:120px;height:120px;border-radius:50%;background:radial-gradient(circle,rgba(255,180,100,.4),rgba(255,140,60,0) 70%);
+  animation:breath 4s cubic-bezier(.45,0,.2,1) infinite alternate!important}
+@keyframes breath{from{transform:scale(.78);opacity:.45}to{transform:scale(1.25);opacity:1}}
+.hint{position:fixed;left:50%;bottom:26px;z-index:8;transform:translate(-50%,16px);opacity:0;pointer-events:none;padding:12px 20px;border-radius:12px;
+  font-size:15px;line-height:1.6;letter-spacing:.04em;color:var(--glow);background:var(--n-card);border:1.5px solid var(--n-line);box-shadow:3px 3px 0 var(--n-line);
+  text-align:center;width:max-content;max-width:calc(100vw - 32px);transition:opacity .8s var(--ease),transform .8s var(--ease)}
+.hint.on{opacity:1;transform:translate(-50%,0)}
+
+/* certificate */
+#cert{position:fixed;inset:0;z-index:11;display:grid;place-items:center;padding:72px 16px 24px;background:var(--bg);opacity:0;pointer-events:none;overflow:auto;transition:opacity 1.2s var(--ease)}
+body[data-step="5"] #cert{opacity:1;pointer-events:auto}
+.cert-core{background:var(--card);color:var(--ink);border:1.5px solid var(--line);border-radius:16px;box-shadow:7px 7px 0 var(--yellow);padding:14px;display:grid;gap:14px;
+  transform:translateY(34px) scale(.98);transition:transform 1.3s var(--ease)}
+body[data-step="5"] .cert-core{transform:none}
+#certImg{display:block;width:min(420px,calc(100vw - 80px),calc((100dvh - 200px) * .8));aspect-ratio:4/5;border-radius:8px;border:1.5px solid var(--line)}
+.cert-actions{display:flex;gap:10px;justify-content:space-between;align-items:center}
+
+@media (max-width:860px){
+  #setup{grid-template-columns:1fr;padding:96px 16px 64px;gap:44px}
+  h1{margin:20px 0 22px}
+}
+@media (max-width:640px){
+  .dock{width:calc(100vw - 24px)}
+  .dock-core{flex-wrap:wrap;padding:14px;justify-content:space-between}
+  .dock-text{width:100%;margin:0 0 4px}
+  .dock .ghost{flex:1;text-align:center}
+  #burn{flex-basis:100%}
+}
+@media (max-width:560px){
+  .steps span{padding:6px 10px;letter-spacing:.06em}
+  .rite{grid-template-columns:1fr}
+  .row{grid-template-columns:1fr}
+  .wx li{grid-template-columns:54px 62px 1fr 36px;gap:8px}
+}
+</style>
+</head>
+<body data-step="1">
+<canvas id="stage" aria-label="燒烏龜的紙張"></canvas>
+
+<nav class="steps" aria-label="進度">
+  <span data-s="1">準備</span><span data-s="2">繪製</span><span data-s="3">燃燒</span><span data-s="4">清理</span>
+</nav>
+
+<main id="setup">
+  <div>
+    <span class="eyebrow reveal">A ritual for clear skies</span>
+    <h1 class="reveal" style="--d:.08s">燒烏龜<canvas class="seal" id="heroSun" width="240" height="240" aria-hidden="true"></canvas></h1>
+    <canvas class="reveal" id="heroTurtles" width="840" height="96" style="--d:.12s" aria-hidden="true"></canvas>
+    <p class="lead reveal" style="--d:.16s">在白紙上畫一顆太陽，和 66 隻頭都朝向太陽的烏龜，寫下日期與地點。誠心默念之後燒成灰燼——把水氣送去給太陽蒸發。</p>
+    <ol class="rite reveal" style="--d:.24s">
+      <li><b>01</b>選地點與日期</li>
+      <li><b>02</b>畫好太陽和烏龜</li>
+      <li><b>03</b>心中默念、點火</li>
+      <li><b>04</b>燒盡、清理灰燼</li>
+    </ol>
+    <p class="note reveal" style="--d:.32s">僅供祈福。出門記得還是看一下天氣。</p>
+  </div>
+
+    <form class="card reveal" style="--d:.2s" id="form" autocomplete="off">
+      <div class="field">
+        <span>地點</span>
+        <div class="loc">
+          <input id="loc" placeholder="搜尋城市，例如 京都、Bali、台北" aria-label="地點" aria-controls="locList">
+          <ul id="locList" hidden></ul>
+        </div>
+      </div>
+      <div class="row">
+        <label class="field"><span>從</span><input type="date" id="d1" required></label>
+        <label class="field"><span>到</span><input type="date" id="d2"></label>
+      </div>
+      <div id="wx" class="wx" aria-live="polite"></div>
+      <label class="field"><span>活動名稱</span><input id="ev" maxlength="24" placeholder="例如 戶外婚禮、畢業旅行、運動會"></label>
+      <label class="field"><span>祈求語</span><textarea id="wish" rows="3" maxlength="80"></textarea></label>
+      <button class="cta" id="go" disabled>開始畫符 <i aria-hidden="true">→</i></button>
+    </form>
+</main>
+
+<div class="dock">
+  <div class="dock-core">
+    <div class="dock-text"><b>66 隻烏龜，頭都朝向太陽</b><small>拖曳太陽，烏龜會轉頭、自動讓開</small></div>
+    <button class="ghost" id="back" type="button">修改</button>
+    <button class="ghost" id="drawOwn" type="button">自己畫烏龜</button>
+    <button class="cta" id="burn" type="button">就是這張，準備燒 <i aria-hidden="true">→</i></button>
+  </div>
+</div>
+
+<div id="padWrap" hidden>
+  <div class="card pad-card" role="dialog" aria-label="自己畫烏龜">
+    <div class="dock-text"><b>畫一隻你的烏龜</b><small>頭朝上畫。黑筆畫線條，彩色筆塗顏色（會塗在線條底下）</small></div>
+    <div class="pens" role="radiogroup" aria-label="筆的顏色">
+      <button class="pen on" type="button" role="radio" aria-checked="true" data-c="#1d1a17" style="--c:#1d1a17" aria-label="黑色線條"></button>
+      <button class="pen" type="button" role="radio" aria-checked="false" data-c="#B9D672" style="--c:#B9D672" aria-label="綠色"></button>
+      <button class="pen" type="button" role="radio" aria-checked="false" data-c="#77C9C5" style="--c:#77C9C5" aria-label="青色"></button>
+      <button class="pen" type="button" role="radio" aria-checked="false" data-c="#FFDB7B" style="--c:#FFDB7B" aria-label="黃色"></button>
+      <button class="pen" type="button" role="radio" aria-checked="false" data-c="#f7a63e" style="--c:#f7a63e" aria-label="橘色"></button>
+      <button class="pen" type="button" role="radio" aria-checked="false" data-c="#b98a5e" style="--c:#b98a5e" aria-label="咖啡色"></button>
+    </div>
+    <div class="pad"><canvas id="pad" width="600" height="600"></canvas><span class="pad-head">↑ 頭朝這邊</span></div>
+    <div class="pad-actions">
+      <button class="ghost" id="padUndo" type="button">復原</button>
+      <button class="ghost" id="padClear" type="button">清除</button>
+      <button class="ghost" id="padDefault" type="button">用預設</button>
+      <button class="cta" id="padDone" type="button">完成</button>
+    </div>
+  </div>
+</div>
+
+<div id="prayer" aria-live="polite">
+  <div class="breath"></div>
+  <span class="eyebrow">Moment of silence</span>
+  <h2>閉上眼睛<br>在心中默念你的願望</h2>
+  <p class="wishline" id="pw"></p>
+</div>
+<div class="hint" id="hint" aria-live="polite"></div>
+<button class="cta" id="clearAll" type="button">一鍵清除灰燼</button>
+
+<section id="cert" aria-label="完成證明">
+  <div class="cert-core">
+    <img id="certImg" alt="燒烏龜完成證明">
+    <div class="cert-actions">
+      <button class="ghost" id="again" type="button">再燒一張</button>
+      <a class="cta" id="dl" download>下載證明 <i aria-hidden="true">↓</i></a>
+    </div>
+  </div>
+</section>
+
+<script>
+const $=s=>document.querySelector(s);
+const W=1000,H=1414,CS=8,GX=W/CS,GY=Math.ceil(H/CS),N=GX*GY;
+const PAPER='#fbf8f1',INK='#1d1a17',RED='#d4462b',MUTED='#8a7b69';
+const HAND='"Microsoft JhengHei","微軟正黑體","PingFang TC",sans-serif',FONT=HAND;
+const clamp=(v,a=0,b=1)=>v<a?a:v>b?b:v;
+const easeOut=t=>1-(1-t)**3;
+const backOut=t=>{t=clamp(t);return 1+2.9*(t-1)**3+1.9*(t-1)**2};
+function rng(s){return()=>{s=s+0x6D2B79F5|0;let t=Math.imul(s^s>>>15,1|s);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const mk=(w,h)=>Object.assign(document.createElement('canvas'),{width:w,height:h});
+
+const S={step:1,place:null,d1:'',d2:'',ev:'',wish:'',wxMax:null};
+const SUN={x:500,y:160};
+
+/* ---------- text helpers ---------- */
+const pad=n=>String(n).padStart(2,'0');
+const iso=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+function fmtRange(a,b){
+  if(!a)return'';
+  const[y1,m1,d1]=a.split('-').map(Number);
+  if(!b||b===a)return`${y1}年${m1}月${d1}日`;
+  const[y2,m2,d2]=b.split('-').map(Number);
+  return`${y1}年${m1}月${d1}日至${y2!==y1?y2+'年':''}${y2!==y1||m2!==m1?m2+'月':''}${d2}日`;
+}
+const placeText=()=>{const p=S.place;return p?p.name+(p.country&&p.country!==p.name?'・'+p.country:''):''};
+function wrap(c,text,max){
+  const out=[];let line='';
+  for(const ch of text){
+    if(ch==='\n'){out.push(line);line='';continue}
+    if(line&&!'，。、！？；：」』）…'.includes(ch)&&c.measureText(line+ch).width>max){out.push(line);line=ch.trim()}else line+=ch;
+  }
+  if(line)out.push(line);
+  return out;
+}
+
+/* ---------- paper drawing ---------- */
+const tex=(()=>{
+  const c=mk(W,H),x=c.getContext('2d'),r=rng(3);
+  x.fillStyle=PAPER;x.fillRect(0,0,W,H);
+  const id=x.getImageData(0,0,W,H),d=id.data;
+  for(let i=0;i<d.length;i+=4){const n=(r()-.5)*9;d[i]+=n;d[i+1]+=n;d[i+2]+=n}
+  x.putImageData(id,0,0);
+  x.lineWidth=1;
+  for(let i=0;i<320;i++){
+    const px=r()*W,py=r()*H,a=r()*6.28,l=10+r()*34;
+    x.strokeStyle=`rgba(130,105,70,${.04+r()*.05})`;
+    x.beginPath();x.moveTo(px,py);x.quadraticCurveTo(px+Math.cos(a+.6)*l*.5,py+Math.sin(a+.6)*l*.5,px+Math.cos(a)*l,py+Math.sin(a)*l);x.stroke();
+  }
+  const g=x.createRadialGradient(W/2,H/2,H*.28,W/2,H/2,H*.78);
+  g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(1,'rgba(130,95,50,.09)');
+  x.fillStyle=g;x.fillRect(0,0,W,H);
+  return c;
+})();
+
+function blob(c,x,y,rx,ry,r,j,n){
+  const o=r()*6.283,p=[];
+  for(let k=0;k<n;k++){const a=o+k/n*6.283,w=1+(r()-.5)*2*j;p.push([x+Math.cos(a)*rx*w,y+Math.sin(a)*ry*w])}
+  const m=(a,b)=>[(a[0]+b[0])/2,(a[1]+b[1])/2];
+  const s=m(p[n-1],p[0]);
+  c.beginPath();c.moveTo(s[0],s[1]);
+  for(let k=0;k<n;k++){const q=m(p[k],p[(k+1)%n]);c.quadraticCurveTo(p[k][0],p[k][1],q[0],q[1])}
+  c.closePath();
+}
+function wline(c,x1,y1,x2,y2,r){
+  c.beginPath();c.moveTo(x1,y1);
+  c.quadraticCurveTo((x1+x2)/2+(r()-.5)*7,(y1+y2)/2+(r()-.5)*7,x2,y2);c.stroke();
+}
+
+function drawSun(c,x,y,p){
+  const r=rng(42);
+  c.save();c.translate(x,y);c.lineCap='round';c.strokeStyle=RED;
+  for(let k=0;k<16;k++){
+    const a=k/16*6.283+.1,L=(k%2?36:56)*p,j=r();
+    c.lineWidth=k%2?4:5.5;
+    wline(c,Math.cos(a)*96,Math.sin(a)*96,Math.cos(a+(j-.5)*.04)*(96+L),Math.sin(a+(j-.5)*.04)*(96+L),r);
+  }
+  c.scale(p||.001,p||.001);
+  blob(c,0,0,74,74,r,.025,26);
+  const g=c.createRadialGradient(-20,-22,6,0,0,82);
+  g.addColorStop(0,'#FFDB7B');g.addColorStop(.55,'#f7a63e');g.addColorStop(1,'#e0522c');
+  c.fillStyle=g;c.fill();c.lineWidth=4;c.strokeStyle='#a9331d';c.stroke();
+  c.strokeStyle='rgba(255,236,170,.5)';c.lineWidth=5;c.lineCap='round';
+  for(let k=0;k<4;k++){const a=r()*6.28;c.beginPath();c.arc(0,0,22+k*11,a,a+1+r()*1.2);c.stroke()}
+  c.restore();
+}
+
+const turtles=[];
+{const r=rng(7);for(let k=0;k<66;k++)
+  turtles.push({jx:(r()-.5)*14,jy:(r()-.5)*16,x:0,y:0,s:.95+r()*.15,seed:r()*1e9|0,j:(r()-.5)*.24})}
+// staggered grid with spacing s over the turtle area (x 45–955, y 80–900), minus the spots the sun covers
+function gridSpots(s){
+  const out=[],rh=s*.87,rows=Math.floor(820/rh)+1,y0=80+(820-(rows-1)*rh)/2,n=Math.floor(910/s)+1,x0=45+(910-(n-1)*s)/2;
+  for(let j=0;j<rows;j++)for(let i=0;i<n;i++){
+    const x=x0+i*s+(j%2?s/2:0),y=y0+j*rh;
+    if(x<=955&&Math.hypot(x-SUN.x,y-SUN.y)>=SR)out.push([x,y]);
+  }
+  return out;
+}
+// homes = the widest grid that still fits all 66 outside the sun, so turtles surround the sun wherever it is
+function homes(byIndex){
+  let lo=60,hi=160;
+  for(let k=0;k<18;k++){const m=(lo+hi)/2;if(gridSpots(m).length>=turtles.length)lo=m;else hi=m}
+  const sp=gridSpots(lo),m=sp.length,n=turtles.length;
+  const sel=turtles.map((_,i)=>sp[Math.floor(i*m/n)]); // spare spots are skipped evenly, not all at the end of the last row
+  const put=(t,p)=>{t.hx=p[0]+t.jx;t.hy=p[1]+t.jy};
+  if(byIndex)return turtles.forEach((t,i)=>put(t,sel[i]));
+  // optimal assignment (least total squared travel): a crowd shifts a little each, nobody runs across the paper
+  const a=assign(turtles.map(t=>sp.map(p=>(t.x-p[0])**2+(t.y-p[1])**2)),n,m);
+  turtles.forEach((t,i)=>put(t,sp[a[i]]));
+}
+// Hungarian algorithm, n rows ≤ m cols; returns the column for each row (O(n²m), ~0.3M ops here)
+function assign(cost,n,m){
+  const u=new Float64Array(n+1),v=new Float64Array(m+1),p=new Int32Array(m+1),way=new Int32Array(m+1);
+  for(let i=1;i<=n;i++){
+    p[0]=i;let j0=0;const minv=new Float64Array(m+1).fill(Infinity),used=new Uint8Array(m+1);
+    do{
+      used[j0]=1;const i0=p[j0];let delta=Infinity,j1=0;
+      for(let j=1;j<=m;j++)if(!used[j]){
+        const c=cost[i0-1][j-1]-u[i0]-v[j];
+        if(c<minv[j]){minv[j]=c;way[j]=j0}
+        if(minv[j]<delta){delta=minv[j];j1=j}
+      }
+      for(let j=0;j<=m;j++)if(used[j]){u[p[j]]+=delta;v[j]-=delta}else minv[j]-=delta;
+      j0=j1;
+    }while(p[j0]!==0);
+    do{const j1=way[j0];p[j0]=p[j1];j0=j1}while(j0);
+  }
+  const ans=new Int32Array(n);
+  for(let j=1;j<=m;j++)if(p[j])ans[p[j]-1]=j-1;
+  return ans;
+}
+const relayout=iter=>{homes();settle(iter)};
+// turtles make way for the sun: spring back toward their home spot, but never overlap the sun or each other
+const SR=192,TD=70;
+function settle(iter){
+  for(let it=0;it<iter;it++){
+    for(const t of turtles){t.x+=(t.hx-t.x)*.08;t.y+=(t.hy-t.y)*.08}
+    for(let a=0;a<turtles.length;a++){
+      const A=turtles[a];
+      for(let b=a+1;b<turtles.length;b++){
+        const Q=turtles[b],dx=Q.x-A.x,dy=Q.y-A.y,d=Math.hypot(dx,dy)||1;
+        if(d<TD){const m=(TD-d)/2/d;A.x-=dx*m;A.y-=dy*m;Q.x+=dx*m;Q.y+=dy*m}
+      }
+    }
+    for(const t of turtles){
+      const dx=t.x-SUN.x,dy=t.y-SUN.y,d=Math.hypot(dx,dy)||1;
+      if(d<SR){t.x=SUN.x+dx/d*SR;t.y=SUN.y+dy/d*SR}
+      t.x=clamp(t.x,45,955);t.y=clamp(t.y,50,950);
+    }
+  }
+}
+homes(true);turtles.forEach(t=>{t.x=t.hx;t.y=t.hy});settle(80);
+const snapShown=()=>turtles.forEach(t=>{t.px=t.x;t.py=t.y});snapShown();
+
+function drawTurtle(c,t,ang,p){
+  if(S.stamp){ // the user's own turtle, with a little per-turtle size/tilt so 66 copies don't look stamped
+    const s=72*t.s*backOut(p);
+    c.save();c.translate(t.x,t.y);c.rotate(ang+t.j);c.drawImage(S.stamp,-s/2,-s/2,s,s);c.restore();return;
+  }
+  const r=rng(t.seed);
+  c.save();c.translate(t.x,t.y);c.rotate(ang);
+  const s=t.s*1.12*backOut(p);c.scale(s||.001,s||.001);
+  c.lineJoin=c.lineCap='round';c.strokeStyle=INK;c.lineWidth=2.4;
+  const part=(x,y,rx,ry,tint)=>{blob(c,x,y,rx,ry,r,.12,10);c.fillStyle=PAPER;c.fill();c.fillStyle=tint;c.fill();c.stroke()};
+  const skin='rgba(119,201,197,.6)';
+  part(-15,-11,6,5,skin);part(15,-11,6,5,skin);part(-14,12,6,5,skin);part(14,12,6,5,skin);
+  c.beginPath();c.moveTo(-3.5,16);c.lineTo((r()-.5)*2,25+r()*2);c.lineTo(3.5,16);c.fillStyle=PAPER;c.fill();c.stroke();
+  part(0,-24,6.5,7.5,skin);
+  c.fillStyle=INK;
+  for(const ex of[-2.6,2.6]){c.beginPath();c.arc(ex,-26.5,1.3,0,6.3);c.fill()}
+  blob(c,0,0,15,18.5,r,.05,18);
+  c.fillStyle=PAPER;c.fill();c.fillStyle='#B9D672';c.fill();c.lineWidth=2.7;c.stroke();
+  c.lineWidth=1.7;
+  const hx=[];
+  for(let k=0;k<6;k++){const a=k/6*6.283+.52;hx.push([Math.cos(a)*6.3*(1+(r()-.5)*.25),Math.sin(a)*7.8*(1+(r()-.5)*.25),a])}
+  c.beginPath();hx.forEach(([x,y],k)=>k?c.lineTo(x,y):c.moveTo(x,y));c.closePath();c.stroke();
+  for(const[x,y,a]of hx){c.beginPath();c.moveTo(x,y);c.lineTo(Math.cos(a)*14,Math.sin(a)*17.5);c.stroke()}
+  c.restore();
+}
+
+function drawText(c,a){
+  if(a<=0)return;
+  c.save();c.globalAlpha=a;c.fillStyle=INK;c.textAlign='center';
+  c.font=`700 60px ${HAND}`;c.fillText(S.ev||'祈求晴天',W/2,1046);
+  c.font=`32px ${HAND}`;c.fillStyle='#4a453e';
+  c.fillText(fmtRange(S.d1,S.d2),W/2,1108);
+  c.fillText(placeText(),W/2,1152);
+  c.strokeStyle='rgba(38,35,32,.25)';c.lineWidth=2;c.beginPath();c.moveTo(W/2-60,1192);c.lineTo(W/2+60,1192);c.stroke();
+  c.font=`30px ${HAND}`;c.fillStyle=INK;
+  let ls=wrap(c,S.wish,780);
+  if(ls.length>3)ls=[ls[0],ls[1],ls[2].slice(0,-1)+'…'];
+  ls.forEach((l,k)=>c.fillText(l,W/2,1250+k*46));
+  c.restore();
+}
+
+const paper=mk(W,H),pc=paper.getContext('2d');
+function renderPaper(t){
+  pc.drawImage(tex,0,0);
+  if(t<0)return;
+  drawSun(pc,SUN.x,SUN.y,easeOut(clamp(t/600)));
+  turtles.forEach((tu,i)=>{
+    const p=clamp((t-450-i*24)/420);
+    if(p>0)drawTurtle(pc,{...tu,x:tu.px,y:tu.py},Math.atan2(SUN.y-tu.py,SUN.x-tu.px)+Math.PI/2,p);
+  });
+  drawText(pc,clamp((t-450-66*24)/700));
+}
+
+/* ---------- stage ---------- */
+const stage=$('#stage'),sx=stage.getContext('2d'),dock=$('.dock'),hintEl=$('#hint'),prayer=$('#prayer');
+let VW,VH,DPR,P={x:0,y:0,w:W,h:H,s:1};
+function layoutPaper(){
+  const top=78,bottom=S.step===2?dock.offsetHeight+40:84;
+  const s=Math.min((VW-32)/W,(VH-top-bottom)/H);
+  P={s,w:W*s,h:H*s,x:(VW-W*s)/2,y:top+(VH-top-bottom-H*s)/2};
+}
+function resize(){
+  DPR=Math.min(devicePixelRatio||1,2);VW=innerWidth;VH=innerHeight;
+  stage.width=VW*DPR;stage.height=VH*DPR;layoutPaper();
+}
+addEventListener('resize',resize);resize();
+
+const body=document.body;
+function setStep(n){
+  S.step=n;body.dataset.step=n;
+  body.classList.toggle('night',n===3||n===4);
+  document.querySelectorAll('.steps span').forEach(s=>{const k=+s.dataset.s;s.classList.toggle('on',k===n);s.classList.toggle('done',k<n)});
+}
+function setHint(t){
+  if(hintEl.textContent!==t)hintEl.textContent=t;
+  hintEl.classList.toggle('on',!!t);
+}
+
+/* ---------- step 2: draw ---------- */
+let drawStart=0,drag=false,homesKey='',homesAt=0,paperLast=0;
+function drawPaperStep(now){
+  const dt=Math.min(250,now-(paperLast||now));paperLast=now;
+  // re-pick spots only when the sun moved, and at most every 250ms mid-drag, so targets don't flicker every frame
+  const key=SUN.x+','+SUN.y;
+  if(key!==homesKey&&(!drag||now-homesAt>250)){homes();homesKey=key;homesAt=now}
+  settle(Math.round(clamp(dt/6,2,30))); // time-based, so slow devices settle as fast as 60fps ones
+  const ease=1-Math.exp(-dt/110);
+  for(const t of turtles){t.px+=(t.x-t.px)*ease;t.py+=(t.y-t.py)*ease} // what you see glides after the physics, never jumps
+  renderPaper(now-drawStart-250);
+  sx.setTransform(DPR,0,0,DPR,0,0);sx.clearRect(0,0,VW,VH);
+  const k=easeOut(clamp((now-drawStart)/900));
+  sx.save();sx.globalAlpha=k;
+  sx.shadowColor='rgba(80,50,20,.22)';sx.shadowBlur=60;sx.shadowOffsetY=24;
+  sx.drawImage(paper,P.x,P.y+(1-k)*36,P.w,P.h);
+  sx.restore();
+}
+
+/* ---------- step 3: burn engine ---------- */
+let ign,dur,ashed,heap=[],flames=[],sparks=[],ash=[];
+const B={};
+const REACH=2500; // ms each click's fire may spread; ≈ 20 clicks to finish a sheet. Lower = more clicks
+const NB=[[-1,-1],[0,-1],[1,-1],[-1,0],[1,0],[-1,1],[0,1],[1,1]];
+
+function hpush(e){const h=heap;let k=h.length;h.push(e);while(k){const p=(k-1)>>1;if(h[p][0]<=e[0])break;h[k]=h[p];k=p}h[k]=e}
+function hpop(){
+  const h=heap,top=h[0],last=h.pop();
+  if(h.length){let k=0;const n=h.length;for(;;){let c=2*k+1;if(c>=n)break;if(c+1<n&&h[c+1][0]<h[c][0])c++;if(h[c][0]>=last[0])break;h[k]=h[c];k=c}h[k]=last}
+  return top;
+}
+
+function initBurn(){
+  ign=new Float64Array(N).fill(Infinity);
+  dur=new Float32Array(N).map(()=>900+Math.random()*900);
+  ashed=new Uint8Array(N);heap=[];
+  flames=[];sparks=[];ash=[];
+  Object.assign(B,{lit:false,left:null,doneAt:0,ready:false,fin:false,enter:performance.now(),lx:W/2,ly:H/2,I:0,lastFront:0,total:1});
+}
+
+// heap entries: [ignite time, cell, time this click's fire started]; spread stops once a fire is REACH old
+function spread(i,t,t0){
+  const x=i%GX,y=i/GX|0;
+  for(const[dx,dy]of NB){
+    const nx=x+dx,ny=y+dy;
+    if(nx<0||ny<0||nx>=GX||ny>=GY)continue;
+    const n=ny*GX+nx;
+    if(ign[n]<=t)continue;
+    const nt=t+100*(dx&&dy?1.41:1)*(dy<0?.7:dy>0?1.35:1)*(.55+Math.random()*.9);
+    if(nt-t0<=REACH&&nt<ign[n]){ign[n]=nt;hpush([nt,n,t0])}
+  }
+}
+function stepBurn(now){while(heap.length&&heap[0][0]<=now){const[t,i,t0]=hpop();if(t===ign[i])spread(i,t,t0)}}
+
+function light(i,t){
+  B.lit=true;B.left=null;B.doneAt=0;
+  ign[i]=t;hpush([t,i,t]);
+}
+
+function blobsOf(){
+  const seen=new Uint8Array(N),out=[];
+  for(let i=0;i<N;i++){
+    if(seen[i]||ign[i]!==Infinity)continue;
+    const q=[i];seen[i]=1;let ax=0,ay=0;
+    for(let k=0;k<q.length;k++){
+      const j=q[k],x=j%GX,y=j/GX|0;ax+=x;ay+=y;
+      for(const[dx,dy]of[[1,0],[-1,0],[0,1],[0,-1]]){
+        const nx=x+dx,ny=y+dy;if(nx<0||ny<0||nx>=GX||ny>=GY)continue;
+        const n=ny*GX+nx;if(!seen[n]&&ign[n]===Infinity){seen[n]=1;q.push(n)}
+      }
+    }
+    out.push({i:q[0],n:q.length,cx:(ax/q.length+.5)*CS,cy:(ay/q.length+.5)*CS});
+  }
+  return out;
+}
+
+function tryIgnite(p){
+  const gx=p.x/CS|0,gy=p.y/CS|0;let best=-1,bd=37;
+  for(let y=gy-6;y<=gy+6;y++)for(let x=gx-6;x<=gx+6;x++){
+    if(x<0||y<0||x>=GX||y>=GY)continue;
+    const i=y*GX+x,d=(x-gx)**2+(y-gy)**2;
+    if(ign[i]===Infinity&&d<bd){bd=d;best=i}
+  }
+  if(best<0)return;
+  light(best,performance.now());
+  for(let k=0;k<12;k++)spawnFlame(best,true);
+}
+
+/* cell render buffers (one pixel per cell, upscaled with smoothing = soft edges) */
+const maskC=mk(GX,GY),charC=mk(GX,GY),glowC=mk(GX,GY);
+const mctx=maskC.getContext('2d'),cctx=charC.getContext('2d'),gctx=glowC.getContext('2d');
+const maskID=mctx.createImageData(GX,GY),charID=cctx.createImageData(GX,GY),glowID=gctx.createImageData(GX,GY);
+const layer=mk(W,H),L=layer.getContext('2d');
+
+function cellXY(i){return[P.x+((i%GX)+.5)*CS*P.s,P.y+((i/GX|0)+.5)*CS*P.s]}
+function spawnFlame(i,big){
+  const[x,y]=cellXY(i),k=P.s/.45;
+  flames.push({x:x+(Math.random()-.5)*8*k,y,vx:(Math.random()-.5)*16*k,vy:-(50+Math.random()*90)*k,age:0,life:.45+Math.random()*.6,size:(big?24:12+Math.random()*18)*k});
+}
+function spawnSpark(i){
+  const[x,y]=cellXY(i),k=P.s/.45;
+  sparks.push({x,y,vx:(Math.random()-.5)*40*k,vy:-(60+Math.random()*130)*k,age:0,life:.8+Math.random()*1.6,ph:Math.random()*6});
+}
+function spawnAsh(i){
+  const[x,y]=cellXY(i),fl=Math.random()<.3,g=fl?100+Math.random()*50|0:40+Math.random()*50|0;
+  ash.push({x,y,vx:(Math.random()-.5)*24,vy:fl?-(18+Math.random()*36):-Math.random()*20,fl,air:true,age:0,life:2+Math.random()*2.5,
+    fy:Math.min(VH-18,P.y+P.h+18)+(Math.random()-.5)*14,rot:Math.random()*6,vr:(Math.random()-.5)*4,
+    w:1.6+Math.random()*3.6,h:1+Math.random()*2.6,col:`rgb(${g},${g-3},${g-6})`,ember:Math.random()<.12?.6+Math.random()*1.4:0,ph:Math.random()*6});
+}
+
+function updateCells(now){
+  const md=maskID.data,cd=charID.data,gd=glowID.data;
+  let front=0,active=0,intact=0,fx=0,fy=0;
+  const pf=Math.min(.06,9/(B.lastFront+1));
+  for(let i=0,o=0;i<N;i++,o+=4){
+    const t0=ign[i];
+    if(t0===Infinity){intact++;md[o+3]=255;cd[o+3]=0;gd[o+3]=0;continue}
+    const a=now-t0;
+    active+=a<dur[i];
+    if(a<0){ // about to catch: scorch
+      const k=clamp(1+a/700);
+      md[o+3]=255;cd[o]=125;cd[o+1]=72;cd[o+2]=28;cd[o+3]=k*k*190;gd[o+3]=0;continue;
+    }
+    const d=dur[i],kc=clamp(a/(d*.35));
+    cd[o]=70-52*kc;cd[o+1]=34-22*kc;cd[o+2]=12-3*kc;cd[o+3]=255;
+    md[o+3]=a<d*.5?255:255*(1-clamp((a-d*.5)/(d*.5)));
+    const g=a<100?a/100:Math.exp(-(a-100)/(d*.22));
+    // alpha carries intensity: 'lighter' on a transparent canvas adds alpha too
+    gd[o]=255;gd[o+1]=70+150*g;gd[o+2]=20+60*g*g;gd[o+3]=255*Math.min(1,g*1.3);
+    if(a<d*.4){
+      front++;fx+=(i%GX+.5)*CS;fy+=((i/GX|0)+.5)*CS;
+      if(Math.random()<pf)spawnFlame(i);
+      if(Math.random()<pf*.18)spawnSpark(i);
+    }
+    if(!ashed[i]&&a>d*.75){ashed[i]=1;if(Math.random()<.07)spawnAsh(i)}
+  }
+  B.lastFront=front;
+  return{front,active,intact,fx,fy};
+}
+
+function drawBurn(now,dt){
+  stepBurn(now);
+  const st=updateCells(now);
+  mctx.putImageData(maskID,0,0);cctx.putImageData(charID,0,0);gctx.putImageData(glowID,0,0);
+
+  // firelight follows the burning front
+  if(st.front){B.lx+=(st.fx/st.front-B.lx)*.08;B.ly+=(st.fy/st.front-B.ly)*.08}
+  B.I+=(clamp(st.front/220)-B.I)*.06;
+  const dk=clamp((now-B.enter)/2400)*.64,I=B.I;
+
+  L.globalCompositeOperation='source-over';
+  L.drawImage(paper,0,0);
+  L.drawImage(charC,0,0,W,H);
+  const g=L.createRadialGradient(B.lx,B.ly,0,B.lx,B.ly,950);
+  g.addColorStop(0,`rgba(8,5,3,${dk*(1-I*.95)})`);g.addColorStop(1,`rgba(8,5,3,${dk*(1-I*.3)})`);
+  L.fillStyle=g;L.fillRect(0,0,W,H);
+  if(I>.01){
+    L.globalCompositeOperation='lighter';
+    const w=L.createRadialGradient(B.lx,B.ly,0,B.lx,B.ly,620);
+    w.addColorStop(0,`rgba(255,140,50,${.24*I})`);w.addColorStop(1,'rgba(255,120,40,0)');
+    L.fillStyle=w;L.fillRect(0,0,W,H);
+  }
+  L.globalCompositeOperation='destination-in';L.drawImage(maskC,0,0,W,H);
+  L.globalCompositeOperation='source-over';
+
+  sx.setTransform(DPR,0,0,DPR,0,0);sx.clearRect(0,0,VW,VH);
+  if(I>.01){
+    const cx=P.x+B.lx*P.s,cy=P.y+B.ly*P.s,a=sx.createRadialGradient(cx,cy,0,cx,cy,Math.max(VW,VH)*.6);
+    a.addColorStop(0,`rgba(255,110,35,${.2*I})`);a.addColorStop(1,'rgba(255,90,20,0)');
+    sx.fillStyle=a;sx.fillRect(0,0,VW,VH);
+  }
+  sx.drawImage(layer,P.x,P.y,P.w,P.h);
+  sx.globalCompositeOperation='lighter';
+  sx.filter='blur(10px)';sx.drawImage(glowC,P.x,P.y,P.w,P.h);sx.filter='none';
+  sx.drawImage(glowC,P.x,P.y,P.w,P.h);
+  sx.globalCompositeOperation='source-over';
+  drawParticles(dt,now);
+
+  if(S.step===3&&B.lit){
+    setHint(st.intact?`一次只燒一塊，繼續點擊沒燒到的地方　已燒 ${Math.floor((1-st.intact/N)*100)}%`:'全部燒成灰燼了');
+    if(!heap.length&&!st.active){
+      if(st.intact){
+        if(!B.left){
+          const bl=blobsOf(),crumbs=bl.filter(b=>b.n<=40); // too small to click: embers finish them
+          if(crumbs.length)crumbs.forEach(b=>light(b.i,now));
+          else B.left=bl.filter(b=>b.n<400); // ring only the small scraps that are easy to miss
+        }
+      }else if(!B.doneAt)B.doneAt=now;
+      else if(now-B.doneAt>1400)enterSweep();
+    }
+  }
+  if(S.step===3&&B.left){
+    const pulse=.5+.5*Math.sin(now/280);
+    sx.setLineDash([3,7]);sx.lineWidth=1.5;
+    for(const b of B.left){
+      sx.strokeStyle=`rgba(255,196,120,${.3+.5*pulse})`;
+      sx.beginPath();sx.arc(P.x+b.cx*P.s,P.y+b.cy*P.s,(Math.sqrt(b.n)*CS*.75+34)*P.s+pulse*4,0,6.3);sx.stroke();
+    }
+    sx.setLineDash([]);
+  }
+  if(S.step===3&&B.ready&&ptr.in&&ptr.mouse){ // the lighter flame under the cursor
+    const f=1+Math.sin(now/60)*.08+Math.sin(now/37)*.05;
+    sx.globalCompositeOperation='lighter';
+    sx.drawImage(hotS,ptr.x-10*f,ptr.y-30*f,20*f,34*f);
+    sx.drawImage(redS,ptr.x-16,ptr.y-40,32,46);
+    sx.globalCompositeOperation='source-over';
+  }
+  if(S.step===4)sweepProgress();
+}
+
+function sprite(stops){
+  const c=mk(64,64),x=c.getContext('2d'),g=x.createRadialGradient(32,32,0,32,32,32);
+  stops.forEach(([o,col])=>g.addColorStop(o,col));x.fillStyle=g;x.fillRect(0,0,64,64);return c;
+}
+const hotS=sprite([[0,'rgba(255,250,225,1)'],[.25,'rgba(255,210,110,.9)'],[.6,'rgba(255,120,30,.35)'],[1,'rgba(255,80,10,0)']]);
+const redS=sprite([[0,'rgba(255,150,60,.7)'],[.4,'rgba(220,70,20,.35)'],[1,'rgba(160,30,10,0)']]);
+
+function drawParticles(dt,now){
+  ash=ash.filter(f=>{
+    if(f.fl){f.age+=dt;f.x+=f.vx*dt+Math.sin(f.age*3+f.ph)*.4;f.y+=f.vy*dt;return f.age<f.life}
+    if(f.air){
+      f.vy=Math.min(f.vy+70*dt,90);f.vx+=Math.sin(now/400+f.ph)*10*dt;
+      f.x+=f.vx*dt;f.y+=f.vy*dt;f.rot+=f.vr*dt;
+      if(f.y>=f.fy){f.y=f.fy;f.air=false;f.vx*=.2}
+    }else{
+      f.vx*=Math.pow(.03,dt);f.x+=f.vx*dt;f.rot+=f.vx*dt*.05;
+      f.y=f.fy-Math.min(9,Math.abs(f.vx)*.02);
+    }
+    f.ember=Math.max(0,f.ember-dt);
+    return f.x>-40&&f.x<VW+40;
+  });
+  for(const f of ash){ // flakes are 2–5px: fake rotation by swapping w/h instead of a transform per flake
+    const flip=Math.sin(f.rot)>0;
+    sx.globalAlpha=f.fl?clamp(1-f.age/f.life)*.8:1;
+    sx.fillStyle=f.col;sx.fillRect(f.x,f.y,flip?f.h:f.w,flip?f.w:f.h);
+  }
+  sx.globalCompositeOperation='lighter';
+  for(const f of ash)if(f.ember>0){sx.globalAlpha=clamp(f.ember)*.9;sx.fillStyle='#ff8a3a';sx.fillRect(f.x-1.5,f.y-1.5,3,3)}
+  flames=flames.filter(f=>(f.age+=dt)<f.life);
+  for(const f of flames){
+    const k=f.age/f.life;f.x+=f.vx*dt;f.y+=f.vy*dt;
+    const s=f.size*(1-k*.55);
+    sx.globalAlpha=(1-k)*(k<.15?k/.15:1)*.85;
+    sx.drawImage(k<.35?hotS:redS,f.x-s,f.y-s*1.4,s*2,s*2.8);
+  }
+  sparks=sparks.filter(p=>(p.age+=dt)<p.life);
+  sx.fillStyle='#ffd08a';
+  for(const p of sparks){
+    p.x+=(p.vx+Math.sin(p.age*6+p.ph)*30)*dt;p.y+=p.vy*dt;p.vy*=1-dt*.4;
+    sx.globalAlpha=1-p.age/p.life;sx.fillRect(p.x-1,p.y-1,2,2);
+  }
+  sx.globalAlpha=1;sx.globalCompositeOperation='source-over';
+}
+
+/* ---------- step 4: sweep ---------- */
+function enterSweep(){
+  setStep(4);stage.classList.remove('lighter');
+  B.total=Math.max(1,ash.filter(f=>!f.fl).length);
+}
+function sweepProgress(){
+  const rem=ash.filter(f=>!f.fl).length,pct=Math.round(clamp(1-rem/B.total)*100);
+  if(!B.fin)setHint(`火已完全熄滅。用滑鼠或手指把灰燼掃出畫面　${pct}%`);
+  if(rem<=B.total*.08&&!B.fin){
+    B.fin=true;setHint('清理乾淨了');
+    ash.forEach(f=>{if(!f.fl)f.vx+=(f.x<VW/2?-1:1)*1800});
+    setTimeout(showCert,1000);
+  }
+}
+// one-tap clear: every flake on the floor gets blown up and away (manual sweeping still works)
+$('#clearAll').addEventListener('click',()=>{
+  for(const f of ash)if(!f.fl)Object.assign(f,{fl:true,age:0,life:.8+Math.random()*1.2,vx:(f.x<VW/2?-1:1)*(300+Math.random()*700),vy:-(60+Math.random()*220)});
+});
+let lastPt=null;
+function sweep(e){
+  const t=performance.now();
+  if(lastPt){
+    const dts=Math.max(8,t-lastPt.t)/1000,vx=clamp((e.clientX-lastPt.x)/dts,-2600,2600);
+    for(const f of ash){
+      if(f.fl)continue;
+      const d=Math.hypot(f.x-e.clientX,f.y-e.clientY);
+      if(d<70)f.vx+=vx*.5*(1-d/70);
+    }
+  }
+  lastPt={x:e.clientX,y:e.clientY,t};
+}
+
+/* ---------- draw your own turtle ---------- */
+const padC=$('#pad'),pctx=padC.getContext('2d'),padWrap=$('#padWrap');
+let strokes=[],cur=null,pen=INK; // stroke = {c: colour, p: points}; black = outline, any other colour = marker
+const COLOR_W=36;
+// colour pass first, outlines on top, so colouring never covers the lines
+function paint(x,lineW){
+  x.lineCap=x.lineJoin='round';
+  for(const outline of[false,true])for(const s of strokes){
+    if((s.c===INK)!==outline)continue;
+    x.strokeStyle=s.c;x.lineWidth=outline?lineW:COLOR_W;
+    x.beginPath();s.p.forEach((p,k)=>k?x.lineTo(p.x,p.y):x.moveTo(p.x,p.y));if(s.p.length===1)x.lineTo(s.p[0].x+.1,s.p[0].y);x.stroke();
+  }
+}
+function padRedraw(){pctx.clearRect(0,0,600,600);paint(pctx,10)}
+// fit the drawing into a 72px stamp (head up); outlines get a fixed pen width so any doodle size matches the paper's line weight
+function makeStamp(){
+  let x0=1e9,x1=-1e9,y0=1e9,y1=-1e9;
+  for(const s of strokes){const m=s.c===INK?0:COLOR_W/2;for(const p of s.p){x0=Math.min(x0,p.x-m);x1=Math.max(x1,p.x+m);y0=Math.min(y0,p.y-m);y1=Math.max(y1,p.y+m)}}
+  const k=128/Math.max(x1-x0,y1-y0,1),c=mk(144,144),x=c.getContext('2d');
+  x.translate(72,72);x.scale(k,k);x.translate(-(x0+x1)/2,-(y0+y1)/2);
+  paint(x,5.2/k);
+  return c;
+}
+document.querySelectorAll('.pen').forEach(b=>b.addEventListener('click',()=>{
+  pen=b.dataset.c;
+  document.querySelectorAll('.pen').forEach(o=>{o.classList.toggle('on',o===b);o.setAttribute('aria-checked',o===b)});
+}));
+const padPt=e=>{const r=padC.getBoundingClientRect();return{x:(e.clientX-r.left)/r.width*600,y:(e.clientY-r.top)/r.height*600}};
+padC.addEventListener('pointerdown',e=>{padC.setPointerCapture(e.pointerId);cur={c:pen,p:[padPt(e)]};strokes.push(cur);padRedraw()});
+padC.addEventListener('pointermove',e=>{if(cur){cur.p.push(padPt(e));padRedraw()}});
+padC.addEventListener('pointerup',()=>cur=null);
+function closePad(stamp){S.stamp=stamp;padWrap.hidden=true;drawStart=performance.now()-900} // replay the turtles popping in
+$('#drawOwn').addEventListener('click',()=>{padWrap.hidden=false;padRedraw()});
+$('#padUndo').addEventListener('click',()=>{strokes.pop();padRedraw()});
+$('#padClear').addEventListener('click',()=>{strokes=[];padRedraw()});
+$('#padDefault').addEventListener('click',()=>{strokes=[];closePad(null)});
+$('#padDone').addEventListener('click',()=>closePad(strokes.length?makeStamp():null));
+addEventListener('keydown',e=>{if(e.key==='Escape'&&!padWrap.hidden)padWrap.hidden=true});
+
+/* ---------- certificate ---------- */
+function renderCert(){
+  const c=mk(1080,1350),x=c.getContext('2d');
+  x.drawImage(tex,0,0,W,W*1350/1080,0,0,1080,1350);
+  x.strokeStyle=INK;x.lineWidth=3;x.strokeRect(48,48,984,1254);
+  x.fillStyle=MUTED;x.font=`700 21px ${FONT}`;
+  x.fillText('C E R T I F I C A T E   O F   C L E A R   S K I E S',96,140);
+  x.fillStyle=INK;x.font=`700 108px ${FONT}`;x.fillText('晴天，',88,282);
+  x.font=`700 56px ${FONT}`;x.fillText('已託付給 66 隻烏龜',96,368);
+  x.save();x.translate(880,224);x.scale(.62,.62);drawSun(x,0,0,1);x.restore();
+  let y=478;
+  const row=(k,v)=>{
+    x.fillStyle=MUTED;x.font=`700 21px ${FONT}`;x.fillText(k,96,y);y+=48;
+    x.fillStyle=INK;x.font=`40px ${HAND}`;
+    wrap(x,v,560).slice(0,3).forEach(l=>{x.fillText(l,96,y);y+=50});y+=14;
+  };
+  row('地點',placeText());row('日期',fmtRange(S.d1,S.d2));
+  if(S.ev)row('活動',S.ev);
+  row('願望',S.wish);
+  const n=new Date();row('燒化時間',`${n.getFullYear()}年${n.getMonth()+1}月${n.getDate()}日 ${pad(n.getHours())}:${pad(n.getMinutes())}`);
+  if(S.wxMax!=null&&y<1150)row('燒前預報',`最高降雨機率 ${S.wxMax}%`);
+  x.save();x.translate(846,990);x.rotate(-.06);
+  x.shadowColor='rgba(60,40,20,.28)';x.shadowBlur=40;x.shadowOffsetY=16;
+  x.drawImage(paper,-140,-198,280,396);x.restore();
+  x.fillStyle=MUTED;x.font=`700 20px ${FONT}`;x.fillText('已燒成灰燼・不留紙片・火已熄滅',96,1246);
+  return c.toDataURL('image/png');
+}
+async function showCert(){
+  const url=renderCert();
+  $('#certImg').src=url;$('#dl').href=url;$('#dl').download=`燒烏龜證明-${S.d1}.png`;
+  setHint('');setStep(5);clearStage();
+}
+
+/* ---------- pointer ---------- */
+const ptr={x:0,y:0,in:false,mouse:false};
+const toPaper=e=>({x:(e.clientX-P.x)/P.s,y:(e.clientY-P.y)/P.s});
+const onSun=q=>Math.hypot(q.x-SUN.x,q.y-SUN.y)<120;
+stage.addEventListener('pointerdown',e=>{
+  const q=toPaper(e);
+  if(S.step===2&&onSun(q)){drag=true;stage.setPointerCapture(e.pointerId);stage.style.cursor='grabbing'}
+  else if(S.step===3&&B.ready)tryIgnite(q);
+});
+stage.addEventListener('pointermove',e=>{
+  Object.assign(ptr,{x:e.clientX,y:e.clientY,in:true,mouse:e.pointerType==='mouse'});
+  if(S.step===2){
+    const q=toPaper(e);
+    if(drag){SUN.x=clamp(q.x,160,840);SUN.y=clamp(q.y,160,800)}
+    else stage.style.cursor=onSun(q)?'grab':'default';
+  }else if(S.step===4)sweep(e);
+});
+stage.addEventListener('pointerup',()=>{drag=false;lastPt=null;if(S.step===2)stage.style.cursor='grab'});
+stage.addEventListener('pointerleave',()=>{ptr.in=false;lastPt=null});
+
+/* ---------- step 1: form ---------- */
+{const s=$('#heroSun').getContext('2d');s.translate(120,120);s.scale(.68,.68);drawSun(s,0,0,1);
+ const c=$('#heroTurtles').getContext('2d'),r=rng(11);
+ for(let i=0;i<8;i++)drawTurtle(c,{x:52+i*104,y:48+(r()-.5)*14,s:1.15,seed:r()*1e9|0},Math.PI/2+(r()-.5)*.25,1);}
+const loc=$('#loc'),list=$('#locList'),d1=$('#d1'),d2=$('#d2'),ev=$('#ev'),wish=$('#wish'),go=$('#go'),wxEl=$('#wx');
+let wishTouched=false,locTimer,locTok=0,wxTok=0;
+const tomorrow=iso(new Date(Date.now()+864e5));
+d1.value=d2.value=tomorrow;d1.min=d2.min=iso(new Date());
+
+const updateGo=()=>{go.disabled=!(S.place&&d1.value)};
+function autoWish(){
+  if(wishTouched)return;
+  const a=d1.value,b=d2.value||a;
+  wish.value=`願${fmtRange(a<b?a:b,a<b?b:a)}，${S.place?S.place.name:'這裡'}${ev.value.trim()?'的'+ev.value.trim():''}天天放晴、萬里無雲。`;
+}
+autoWish();
+wish.addEventListener('input',()=>{wishTouched=wish.value.trim()!==''});
+ev.addEventListener('input',autoWish);
+
+loc.addEventListener('input',()=>{
+  S.place=null;updateGo();clearTimeout(locTimer);
+  const q=loc.value.trim();
+  if(q.length<2){list.hidden=true;return}
+  locTimer=setTimeout(async()=>{
+    const tok=++locTok;
+    try{
+      const rs=await geocode(q);
+      if(tok!==locTok)return;
+      list.replaceChildren();
+      if(!rs.length)list.innerHTML='<li class="empty">找不到這個地點，換個寫法試試（中英文都可以）</li>';
+      for(const p of rs){
+        const li=document.createElement('li'),b=document.createElement('button'),n=document.createElement('b'),s=document.createElement('small');
+        b.type='button';n.textContent=p.name;s.textContent=[p.admin1,p.country].filter(Boolean).join('・');
+        b.append(n,s);b.onclick=()=>pick(p);li.append(b);list.append(li);
+      }
+      list.hidden=false;
+    }catch{list.innerHTML='<li class="empty">連線失敗，稍後再試</li>';list.hidden=false}
+  },600);
+});
+// Open-Meteo knows big cities; OpenStreetMap catches Chinese names it misses (台中, 台北…). Merge, drop near-duplicates.
+async function geocode(q){
+  const lastPart=s=>(s||'').split(/[;\/]/).pop().trim();
+  const [om,osm]=await Promise.all([
+    fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=5&language=zh&format=json`).then(r=>r.json()).then(j=>j.results||[]).catch(()=>[]),
+    fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&addressdetails=1&accept-language=zh-TW&q=${encodeURIComponent(q)}`).then(r=>r.json())
+      .then(a=>a.map(x=>({name:x.name||lastPart(x.display_name.split(',')[0]),admin1:x.address?.city||x.address?.county||x.address?.state||'',
+        country:lastPart(x.address?.country),latitude:+x.lat,longitude:+x.lon}))).catch(()=>[]),
+  ]);
+  const out=[];
+  for(const p of[...om,...osm])
+    if(!out.some(o=>Math.abs(o.latitude-p.latitude)<.15&&Math.abs(o.longitude-p.longitude)<.15))out.push(p);
+  return out.slice(0,6);
+}
+loc.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();list.querySelector('button')?.click()}});
+document.addEventListener('click',e=>{if(!e.target.closest('.loc'))list.hidden=true});
+function pick(p){
+  S.place=p;loc.value=placeText();list.hidden=true;
+  autoWish();loadWx();updateGo();
+}
+
+const wxName=c=>c===0?'晴':c<=2?'晴時多雲':c===3?'陰':c<=48?'霧':c<=57?'毛毛雨':c<=67?'雨':c<=77?'雪':c<=82?'陣雨':c<=86?'陣雪':'雷雨';
+async function loadWx(){
+  const tok=++wxTok;S.wxMax=null;
+  let a=d1.value,b=d2.value||a;if(b<a)[a,b]=[b,a];
+  if(!S.place||!a){wxEl.innerHTML='';return}
+  wxEl.innerHTML='<p class="muted">查詢天氣預報中…</p>';
+  try{
+    const p=S.place;
+    const j=await(await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${p.latitude}&longitude=${p.longitude}&daily=weather_code,precipitation_probability_max&timezone=auto&start_date=${a}&end_date=${b}`)).json();
+    if(tok!==wxTok)return;
+    if(j.error||!j.daily)throw 0;
+    const{time,weather_code:wc,precipitation_probability_max:pp}=j.daily;
+    const vals=pp.filter(v=>v!=null),mx=vals.length?Math.max(...vals):null;S.wxMax=mx;
+    const head=mx==null?'預報資料還不完整':mx>=50?'降雨機率偏高，很需要烏龜幫忙':mx>=20?'天氣有點不穩，燒一張保平安':'目前預報不錯，燒一張把晴天鎖住';
+    const wd='日一二三四五六';
+    const rows=time.slice(0,7).map((t,k)=>{
+      const[,m,d]=t.split('-').map(Number),v=pp[k];
+      return`<li><span>${m}/${d} ${wd[new Date(t+'T12:00').getDay()]}</span><span>${wxName(wc[k])}</span><span class="bar"><i style="width:${v??0}%"></i></span><span>${v==null?'—':v+'%'}</span></li>`;
+    }).join('');
+    wxEl.innerHTML=`<h4>${head}</h4><ul>${rows}</ul>${time.length>7?`<p class="muted" style="margin-top:8px">…共 ${time.length} 天</p>`:''}`;
+  }catch{
+    if(tok===wxTok)wxEl.innerHTML='<p class="muted">這段日期還在預報範圍外（大約 16 天內才有預報），不影響燒烏龜。</p>';
+  }
+}
+d1.addEventListener('change',()=>{if(!d2.value||d2.value<d1.value)d2.value=d1.value;d2.min=d1.value;autoWish();loadWx();updateGo()});
+d2.addEventListener('change',()=>{autoWish();loadWx()});
+
+$('#form').addEventListener('submit',async e=>{
+  e.preventDefault();
+  if(go.disabled)return;
+  S.d1=d1.value;S.d2=d2.value||d1.value;if(S.d2<S.d1)[S.d1,S.d2]=[S.d2,S.d1];
+  S.ev=ev.value.trim();S.wish=wish.value.trim();
+  if(!S.wish){wishTouched=false;autoWish();S.wish=wish.value}
+  scrollTo(0,0);setStep(2);layoutPaper();
+  drawStart=performance.now();
+});
+$('#back').addEventListener('click',()=>{setStep(1);clearStage()});
+$('#burn').addEventListener('click',()=>{
+  relayout(60);snapShown();renderPaper(1e9);initBurn();setStep(3);
+  $('#pw').textContent=S.wish;
+  clearTimeout(B.t1);clearTimeout(B.t2);
+  B.t1=setTimeout(()=>prayer.classList.add('on'),900);
+  B.t2=setTimeout(()=>{prayer.classList.remove('on');B.ready=true;stage.classList.add('lighter');setHint('點擊紙張點火——一次只燒一塊，多點幾處把它燒完')},8500);
+});
+$('#again').addEventListener('click',()=>{
+  flames=[];sparks=[];ash=[];setHint('');setStep(1);clearStage();
+});
+function clearStage(){sx.setTransform(1,0,0,1,0,0);sx.clearRect(0,0,stage.width,stage.height);stage.style.cursor='';stage.classList.remove('lighter')}
+
+/* ---------- loop ---------- */
+let last=performance.now();
+function frame(now){
+  requestAnimationFrame(frame);
+  const dt=Math.min(.05,(now-last)/1000);last=now;
+  if(S.step===2)drawPaperStep(now);
+  else if(S.step===3||S.step===4)drawBurn(now,dt);
+}
+requestAnimationFrame(frame);
+
+/* ponytail: one self-check — open index.html#test and read the console */
+if(location.hash==='#test'){
+  heap=[];[5,1,4,2,3].forEach(t=>hpush([t,0]));
+  console.assert([1,2,3,4,5].every(t=>hpop()[0]===t),'heap order');
+  console.assert(fmtRange('2026-11-20','2026-11-22')==='2026年11月20日至22日','fmtRange');
+  console.assert(Array.from(assign([[4,1,3],[2,0,5],[3,2,2]],3,3)).join()==='1,0,2','optimal assignment');
+  initBurn();let T=0;light((GY>>1)*GX+(GX>>1),T);stepBurn(T+=1e6);
+  const first=ign.filter(v=>v!==Infinity).length;let clicks=1;
+  for(let bl;(bl=blobsOf()).length&&clicks<500;clicks++){light(bl[0].i,T);stepBurn(T+=1e6)}
+  console.assert(first<N*.3,'one click burns only a patch');
+  SUN.x=500;SUN.y=560;relayout(300);
+  console.assert(turtles.every(t=>Math.hypot(t.x-SUN.x,t.y-SUN.y)>=SR-1),'turtles make way for the sun');
+  const beside=side=>turtles.some(t=>side*(t.x-SUN.x)>SR&&Math.abs(t.y-SUN.y)<100);
+  console.assert(beside(-1)&&beside(1),'sun in the middle: turtles on both sides too');
+  SUN.y=800;relayout(300);
+  console.assert(turtles.filter(t=>t.y<SUN.y-SR).length>=40,'sun low: turtles fill the top');
+  SUN.x=500;SUN.y=160;relayout(300);
+  strokes=[{c:INK,p:[{x:100,y:100},{x:500,y:500}]}];const st=makeStamp().getContext('2d');strokes=[];
+  console.assert(st.getImageData(72,72,1,1).data[3]>0&&st.getImageData(10,134,1,1).data[3]===0,'doodle is fitted into the stamp');
+  console.assert(ign.every(v=>v!==Infinity),'enough clicks burn it all');
+  console.log(`selftest done: first click ${(first/N*100).toFixed(1)}%, ${clicks} clicks to finish`);
+}
+</script>
+</body>
+</html>
