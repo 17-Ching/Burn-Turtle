@@ -904,17 +904,23 @@ loc.addEventListener('input',()=>{
     }catch{list.innerHTML='<li class="empty">連線失敗，稍後再試</li>';list.hidden=false}
   },600);
 });
-// Open-Meteo knows big cities; OpenStreetMap catches Chinese names it misses (台中, 台北…). Merge, drop near-duplicates.
+// Country names never come from the geocoders' text: Open-Meteo's Chinese data labels Taiwan "臺灣省"/"台湾".
+// We name countries ourselves from the ISO code, in Traditional Chinese.
+const REGION=new Intl.DisplayNames(['zh-Hant-TW'],{type:'region'}),REGION_FIX={TW:'台灣',HK:'香港',MO:'澳門'};
+const countryName=code=>{const c=(code||'').toUpperCase();return c?REGION_FIX[c]||REGION.of(c):''};
+const lastPart=s=>(s||'').split(/[;\/]/).pop().trim();
+const fromOSM=x=>({name:x.name||lastPart(x.display_name.split(',')[0]),admin1:x.address?.city||x.address?.county||x.address?.state||'',
+  country:countryName(x.address?.country_code),latitude:+x.lat,longitude:+x.lon});
+const fromOM=x=>({name:x.name,admin1:x.country_code==='TW'?x.admin2||'':x.admin1||'', // TW admin1 there is "臺灣省", show the city/county instead
+  country:countryName(x.country_code),latitude:x.latitude,longitude:x.longitude});
+// OpenStreetMap (zh-TW labels, finds 台中/台北) first; Open-Meteo only fills gaps. Merge, drop near-duplicates.
 async function geocode(q){
-  const lastPart=s=>(s||'').split(/[;\/]/).pop().trim();
-  const [om,osm]=await Promise.all([
-    fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=5&language=zh&format=json`).then(r=>r.json()).then(j=>j.results||[]).catch(()=>[]),
-    fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&addressdetails=1&accept-language=zh-TW&q=${encodeURIComponent(q)}`).then(r=>r.json())
-      .then(a=>a.map(x=>({name:x.name||lastPart(x.display_name.split(',')[0]),admin1:x.address?.city||x.address?.county||x.address?.state||'',
-        country:lastPart(x.address?.country),latitude:+x.lat,longitude:+x.lon}))).catch(()=>[]),
+  const [osm,om]=await Promise.all([
+    fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&addressdetails=1&accept-language=zh-TW&q=${encodeURIComponent(q)}`).then(r=>r.json()).then(a=>a.map(fromOSM)).catch(()=>[]),
+    fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=5&language=zh&format=json`).then(r=>r.json()).then(j=>(j.results||[]).map(fromOM)).catch(()=>[]),
   ]);
   const out=[];
-  for(const p of[...om,...osm])
+  for(const p of[...osm,...om])
     if(!out.some(o=>Math.abs(o.latitude-p.latitude)<.15&&Math.abs(o.longitude-p.longitude)<.15))out.push(p);
   return out.slice(0,6);
 }
@@ -989,6 +995,9 @@ if(location.hash==='#test'){
   heap=[];[5,1,4,2,3].forEach(t=>hpush([t,0]));
   console.assert([1,2,3,4,5].every(t=>hpop()[0]===t),'heap order');
   console.assert(fmtRange('2026-11-20','2026-11-22')==='2026年11月20日至22日','fmtRange');
+  const tw=fromOM({name:'台北市',admin1:'臺灣省 or 台灣省',admin2:'臺北市',country:'台湾',country_code:'TW',latitude:25,longitude:121.5});
+  console.assert(tw.country==='台灣'&&!/省|中国|中國|台湾/.test(tw.admin1+tw.country),'Taiwan labelled 台灣, never 省/中國');
+  console.assert(fromOSM({name:'臺北市',address:{city:'臺北市',country:'臺灣',country_code:'tw'},lat:'25',lon:'121.5',display_name:'臺北市'}).country==='台灣','OSM Taiwan label');
   console.assert(Array.from(assign([[4,1,3],[2,0,5],[3,2,2]],3,3)).join()==='1,0,2','optimal assignment');
   initBurn();let T=0;light((GY>>1)*GX+(GX>>1),T);stepBurn(T+=1e6);
   const first=ign.filter(v=>v!==Infinity).length;let clicks=1;
