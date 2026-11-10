@@ -71,6 +71,9 @@ input[type=date]{display:block;min-width:0;min-height:48px;-webkit-appearance:no
 #locList button:hover,#locList button:focus-visible{background:var(--y-soft)}
 #locList b{font-weight:700}
 #locList small{color:var(--muted);font-size:12px}
+#locAlt{margin-top:8px;font-size:13px;color:var(--muted)}
+#locAlt[hidden]{display:none}
+#locAlt button{all:unset;cursor:pointer;margin-left:6px;padding:2px 10px;border:1.5px solid var(--line);border-radius:7px;background:var(--y-soft);color:var(--ink);font-weight:700}
 #locList .empty{padding:12px 14px;font-size:13px;color:var(--muted)}
 .wx{font-size:13px;padding:14px 16px;border-radius:10px;background:var(--t-soft);border:1.5px solid var(--line)}
 .wx:empty{display:none}
@@ -195,6 +198,7 @@ body[data-step="5"] .cert-core{transform:none}
         <div class="loc">
           <input id="loc" placeholder="搜尋城市，例如 京都、Bali、台北" aria-label="地點" aria-controls="locList">
           <ul id="locList" hidden></ul>
+          <p id="locAlt" hidden>不是這個地點？<button type="button">換一個</button></p>
         </div>
       </div>
       <div class="row">
@@ -887,7 +891,8 @@ let wishTouched=false,locTimer,locTok=0,wxTok=0;
 const tomorrow=iso(new Date(Date.now()+864e5));
 d1.value=d2.value=tomorrow;d1.min=d2.min=iso(new Date());
 
-const updateGo=()=>{go.disabled=!(S.place&&d1.value)};
+let guess=null; // first search result, used if the user never taps the dropdown
+const updateGo=()=>{go.disabled=!((S.place||loc.value.trim())&&d1.value)};
 function autoWish(){
   if(wishTouched)return;
   const a=d1.value,b=d2.value||a;
@@ -898,7 +903,7 @@ wish.addEventListener('input',()=>{wishTouched=wish.value.trim()!==''});
 ev.addEventListener('input',autoWish);
 
 loc.addEventListener('input',()=>{
-  S.place=null;updateGo();clearTimeout(locTimer);
+  S.place=guess=null;showAlt();updateGo();clearTimeout(locTimer);
   const q=loc.value.trim();
   if(q.length<2){list.hidden=true;return}
   locTimer=setTimeout(async()=>{
@@ -906,7 +911,7 @@ loc.addEventListener('input',()=>{
     try{
       const rs=await geocode(q);
       if(tok!==locTok)return;
-      list.replaceChildren();
+      guess=rs[0]||null;list.replaceChildren();
       if(!rs.length)list.innerHTML='<li class="empty">找不到這個地點，換個寫法試試（中英文都可以）</li>';
       for(const p of rs){
         const li=document.createElement('li'),b=document.createElement('button'),n=document.createElement('b'),s=document.createElement('small');
@@ -914,6 +919,7 @@ loc.addEventListener('input',()=>{
         b.append(n,s);b.onclick=()=>pick(p);li.append(b);list.append(li);
       }
       list.hidden=false;
+      if(document.activeElement!==loc&&guess)pick(guess); // results came back after the user left the field
     }catch{list.innerHTML='<li class="empty">連線失敗，稍後再試</li>';list.hidden=false}
   },600);
 });
@@ -941,8 +947,13 @@ loc.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();list.q
 document.addEventListener('click',e=>{if(!e.target.closest('.loc'))list.hidden=true});
 function pick(p){
   S.place=p;loc.value=placeText();list.hidden=true;
-  autoWish();loadWx();updateGo();
+  showAlt();autoWish();loadWx();updateGo();
 }
+// Leaving the field takes the first result; "換一個" reopens the list to pick another.
+const locAlt=$('#locAlt'),showAlt=()=>{locAlt.hidden=!(S.place&&list.querySelectorAll('button').length>1)};
+locAlt.querySelector('button').onclick=()=>{list.hidden=false;locAlt.hidden=true};
+list.addEventListener('mousedown',e=>e.preventDefault()); // keep focus so the blur below doesn't race a click
+loc.addEventListener('blur',()=>setTimeout(()=>{if(!S.place&&guess)pick(guess)},200));
 
 const wxName=c=>c===0?'晴':c<=2?'晴時多雲':c===3?'陰':c<=48?'霧':c<=57?'毛毛雨':c<=67?'雨':c<=77?'雪':c<=82?'陣雨':c<=86?'陣雪':'雷雨';
 async function loadWx(){
@@ -974,6 +985,7 @@ d2.addEventListener('change',()=>{autoWish();loadWx()});
 $('#form').addEventListener('submit',async e=>{
   e.preventDefault();
   if(go.disabled)return;
+  if(!S.place){S.place=guess||{name:loc.value.trim(),country:''};loc.value=placeText();list.hidden=true;autoWish()}
   S.d1=d1.value;S.d2=d2.value||d1.value;if(S.d2<S.d1)[S.d1,S.d2]=[S.d2,S.d1];
   S.ev=ev.value.trim();S.wish=wish.value.trim();
   if(!S.wish){wishTouched=false;autoWish();S.wish=wish.value}
