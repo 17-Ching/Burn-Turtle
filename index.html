@@ -145,6 +145,8 @@ body[data-step="5"] #cert{opacity:1;pointer-events:auto}
 body[data-step="5"] .cert-core{transform:none}
 #certImg{display:block;width:min(420px,calc(100vw - 80px),calc((100dvh - 200px) * .8));aspect-ratio:4/5;border-radius:8px;border:1.5px solid var(--line)}
 .cert-actions{display:flex;gap:10px;justify-content:space-between;align-items:center}
+.cert-tip{display:none;font-size:12px;color:var(--muted);text-align:center}
+@media (pointer:coarse){.cert-tip{display:block}}
 
 @media (max-width:860px){
   #setup{grid-template-columns:1fr;padding:96px 16px 64px;gap:44px}
@@ -252,6 +254,7 @@ body[data-step="5"] .cert-core{transform:none}
       <button class="ghost" id="again" type="button">再燒一張</button>
       <a class="cta" id="dl" download>下載證明 <i aria-hidden="true">↓</i></a>
     </div>
+    <p class="cert-tip">手機也可以長按上面的圖片，選「儲存影像」</p>
   </div>
 </section>
 
@@ -837,13 +840,23 @@ function renderCert(){
   x.shadowColor='rgba(60,40,20,.28)';x.shadowBlur=40;x.shadowOffsetY=16;
   x.drawImage(paper,-140,-198,280,396);x.restore();
   x.fillStyle=MUTED;x.font=`700 20px ${FONT}`;x.fillText('已燒成灰燼・不留紙片・火已熄滅',96,1246);
-  return c.toDataURL('image/png');
+  return c;
 }
+let certFile=null,certURL='';
 async function showCert(){
-  const url=renderCert();
-  $('#certImg').src=url;$('#dl').href=url;$('#dl').download=`燒烏龜證明-${S.d1}.png`;
+  // blob URL instead of a data: URL — phones choke on multi-MB data: links
+  const blob=await new Promise(r=>renderCert().toBlob(r,'image/png')),name=`燒烏龜證明-${S.d1}.png`;
+  if(certURL)URL.revokeObjectURL(certURL);
+  certURL=URL.createObjectURL(blob);certFile=new File([blob],name,{type:'image/png'});
+  $('#certImg').src=certURL;$('#dl').href=certURL;$('#dl').download=name;
   setHint('');setStep(5);clearStage();
 }
+// phones ignore <a download> (iOS Safari, LINE/FB in-app browsers): open the share sheet, which has "儲存影像"
+$('#dl').addEventListener('click',e=>{
+  if(!matchMedia('(pointer:coarse)').matches||!navigator.canShare?.({files:[certFile]}))return; // desktop: normal download
+  e.preventDefault();
+  navigator.share({files:[certFile],title:'燒烏龜證明'}).catch(()=>{});
+});
 
 /* ---------- pointer ---------- */
 const ptr={x:0,y:0,in:false,mouse:false};
